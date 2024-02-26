@@ -25,8 +25,11 @@ class Hummusdog:
     def __init__(self, width, height) -> None:
         self.width = width
         self.height = height
-        self.pixels = [[{"char":" ","foreground_color":(255,255,255),"background_color":(0,0,0)} for _ in range(width)] for _ in range(height)]
+        self.clear()
         self.reload()
+
+    def clear(self, color = (0,0,0)):
+        self.pixels = [[{"char":" ","foreground_color":(255,255,255),"background_color":color} for _ in range(self.width)] for _ in range(self.height)]
 
     def reload(self):
         clear_terminal()
@@ -49,18 +52,48 @@ class Hummusdog:
         print(reset_color,end="",flush=True)
 
     def set_pixel(self, x, y, color):
-        self.pixels[y][x] = color
+        self.pixels[y][x]["background_color"] = color
+        self.pixels[y][x]["char"] = " "
 
     def draw_string(self, x, y, color, text):
         for char_y in range(len(text.split("\n"))):
             for char_x in range(len(text.split("\n")[char_y])):
-                self.pixels[y+char_y][x+char_x]["char"] = text.split("\n")[y][x]
+                self.pixels[y+char_y][x+char_x]["char"] = text.split("\n")[char_y][char_x]
                 self.pixels[y+char_y][x+char_x]["foreground_color"] = color
     
-    def draw_circle(self, x, y, color, width):
-        pass
+    def draw_circle(self, x, y, color, radius_width, radius_height = None, allow_sharp = False)->int:
+        """Draw a circle. Radius_width refers to the radius, and if radius_height it specified circle can be oval.
+        If allow_sharp is true, it will allow single pixels on a row, which are normally removed since they stick out too much.
+        Returns how many pixels were in the circle"""
+        
+        if not radius_height:
+            radius_height = radius_width
+        
+        amt = 0
+
+        for c_y in range(-radius_height, radius_height + 1):
+            pixels = []
+            for c_x in range(-radius_width, radius_width + 1):
+                pos_x = x + c_x
+                pos_y = y + c_y
+                distance = (c_x / radius_width)**2 + (c_y / radius_height)**2
+                if distance <= 1:
+                    pixels.append((pos_x,pos_y,self.pixels[pos_y][pos_x].copy()))
+                    amt += 1
+                    self.pixels[pos_y][pos_x]["background_color"] = color
+                    self.pixels[pos_y][pos_x]["char"] = " "
+            
+            if len(pixels) == 1:
+                self.pixels[pixels[0][1]][pixels[0][0]] = pixels[0][2]
+                
+                # if a row has a single square, remove it.
+                # since squares are so tall, it looks weird when
+                # a single square sticks out vertically.
+        return amt
+        
 
 if __name__ == "__main__":
     program = Hummusdog(75,14)
     program.draw_string(0,0,(255,0,255),"hello")
+    program.draw_circle(12,6,(255,0,0),5,3)
     program.reload()
