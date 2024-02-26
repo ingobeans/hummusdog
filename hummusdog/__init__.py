@@ -31,6 +31,11 @@ class Hummusdog:
     def clear(self, color = (0,0,0)):
         self.pixels = [[{"char":" ","foreground_color":(255,255,255),"background_color":color} for _ in range(self.width)] for _ in range(self.height)]
 
+    def get_pixel(self, x, y):
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return {"char":" ","foreground_color":(255,255,255),"background_color":(0,0,0), "fake":True}
+        return self.pixels[y][x]
+
     def reload(self):
         clear_terminal()
         last_bg_color = None
@@ -52,14 +57,16 @@ class Hummusdog:
         print(reset_color,end="",flush=True)
 
     def set_pixel(self, x, y, color):
-        self.pixels[y][x]["background_color"] = color
-        self.pixels[y][x]["char"] = " "
+        pixel = self.get_pixel(x,y)
+        pixel["background_color"] = color
+        pixel["char"] = " "
 
     def draw_string(self, x, y, color, text):
         for char_y in range(len(text.split("\n"))):
             for char_x in range(len(text.split("\n")[char_y])):
-                self.pixels[y+char_y][x+char_x]["char"] = text.split("\n")[char_y][char_x]
-                self.pixels[y+char_y][x+char_x]["foreground_color"] = color
+                pixel = self.get_pixel(x + char_x, y + char_y)
+                pixel["char"] = text.split("\n")[char_y][char_x]
+                pixel["foreground_color"] = color
     
     def draw_circle(self, x, y, color, radius_width, radius_height = None, allow_sharp = False)->int:
         """Draw a circle. Radius_width refers to the radius, and if radius_height it specified circle can be oval.
@@ -76,15 +83,21 @@ class Hummusdog:
             for c_x in range(-radius_width, radius_width + 1):
                 pos_x = x + c_x
                 pos_y = y + c_y
+                
                 distance = (c_x / radius_width)**2 + (c_y / radius_height)**2
                 if distance <= 1:
-                    pixels.append((pos_x,pos_y,self.pixels[pos_y][pos_x].copy()))
+                    pixel = self.get_pixel(pos_x, pos_y)
+                    pixels.append((pos_x,pos_y,pixel.copy()))
                     amt += 1
-                    self.pixels[pos_y][pos_x]["background_color"] = color
-                    self.pixels[pos_y][pos_x]["char"] = " "
+                    pixel["background_color"] = color
+                    pixel["char"] = " "
             
             if len(pixels) == 1:
-                self.pixels[pixels[0][1]][pixels[0][0]] = pixels[0][2]
+                print(pixels)
+                pixel = self.get_pixel(pixels[0][0],pixels[0][1])
+                print(f"WA: {pixel}")
+                pixel["char"] = pixels[0][2]["char"]
+                pixel["background_color"] = pixels[0][2]["background_color"]
                 
                 # if a row has a single square, remove it.
                 # since squares are so tall, it looks weird when
